@@ -1,11 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char **loadFile(int *ROWS, int *COLUMNS);
-int saveFile(char **boardToSave, int ROWS, int COLUMNS);
+char **loadFile();
+int saveFile();
 FILE *attemptOpen(char* fileName, char* mode);
+char *getInput(size_t bufsize);
+void freeAutomata();
+void menu();
+void clearBuffer(char *input);
+char **testAutomata();
+int printAutomata();
 
-
+//Make Automata and it's dimensions availible to all functions
+char **automata;
+int ROWS, COLUMNS;
 /*
 Daniel Kevin Blackley - 160007728
 */
@@ -14,11 +22,103 @@ Daniel Kevin Blackley - 160007728
 The following function uses the getLine function to get input fromt he user, it then
 returns that input to the user
 */
-char *getInput() {
+
+int main(int argc, char const *argv[]) {
+  menu();
+  return 0;
+}
+
+void menu() {
+
+  char *input;
+  printf("Please select and option from below:\n");
+
+  //set the automata to NULL, so we know if the user actually has an automata currently set up
+  automata = NULL;
+  ROWS = COLUMNS = 0;
+
+  automata = testAutomata();
+
+  printf("\n\nType 1 to Change the settings for the Automata:\n");
+  printf("Type 2 to run the Cellular Automata:\n");
+  printf("Type 3 to Load an Automata from a file:\n");
+  printf("Type 4 to save the most recent Automata to a file:\n");
+  printf("Type 5 to Print out current automata\n");
+  printf("Type 0 to exit:\n");
+
+  //get input from the getInput function
+  while (*(input = getInput(2)) != '0') {
+
+    switch (*input) {
+      case '1':
+        clearBuffer(input);
+        //function for changing settings goes here
+        break;
+      case '2':
+        clearBuffer(input);
+        //function to run the Automata
+        break;
+      case '3':
+        clearBuffer(input);
+        automata = loadFile();
+        //if automata hasn't yet been initialised
+        if (automata == NULL) {
+          printf("Error encountered\n");
+        }
+        break;
+      case '4':
+        clearBuffer(input);
+        if (!saveFile()) {
+          printf("Error encountered\n");
+        }
+        break;
+      case '5':
+        clearBuffer(input);
+        if(!printAutomata()) {
+          printf("Error Encountered\n");
+        }
+        break;
+      default:
+        printf("Unkown input %s, please try again: \n\n", input);
+        break;
+    }
+
+    printf("\n\nType 1 to Change the settings for the Automata:\n");
+    printf("Type 2 to run the Cellular Automata:\n");
+    printf("Type 3 to Load an Automata from a file:\n");
+    printf("Type 4 to save the most recent Automata to a file:\n");
+    printf("Type 5 to Print out current automata\n");
+    printf("Type 0 to exit:\n");
+  }
+
+  freeAutomata();
+}
+
+int printAutomata() {
+
+  if (automata == NULL) {
+    printf("No automata currently loaded\n");
+    return 0;
+  }
+  printf("Current automata:\n\n\n");
+
+  for (size_t i = 0; i < ROWS; i++) {
+    for (size_t c = 0; c < COLUMNS; c++) {
+      printf("%c", automata[i][c]);
+    }
+    printf("\n");
+  }
+
+  return 1;
+}
+
+
+char *getInput(size_t bufsize) {
+
+  fseek(stdin,0,SEEK_END);
 
   //buffer holds the input from getLine
   char *buffer;
-  size_t bufsize = 32;
 
   buffer = (char *)malloc(bufsize * sizeof(char));
   if( buffer == NULL) {
@@ -28,6 +128,7 @@ char *getInput() {
     }
 
     fgets(buffer, bufsize, stdin);
+
     return buffer;
 }
 
@@ -56,14 +157,20 @@ The following function saves the array to a file and then returns 0 if a error
 was encountered or 1 if it was successful. The parameters are the array to be
 written to file and the numbers of ROWS and COLUMNS the array has
 */
-int saveFile(char **boardToSave, int ROWS, int COLUMNS) {
+int saveFile() {
+
+  if (automata == NULL) {
+    printf("Cannot save NULL automata\n");
+    return 0;
+  }
 
   printf("Please enter in the file name to be saved\n");
-  char *fileName = getInput();
+  char *fileName = getInput(32);
   //Open file in write mode
   FILE *pFile = attemptOpen(fileName, "w");
 
   if (pFile == NULL) {
+    printf("Malloc ran out of Memory\n");
     return 0;
   }
 
@@ -71,7 +178,7 @@ int saveFile(char **boardToSave, int ROWS, int COLUMNS) {
   for (size_t i = 0; i < ROWS ; i++) {
     for (size_t c = 0; c < COLUMNS ; c++) {
 
-      fputc(boardToSave[i][c], pFile);
+      fputc(automata[i][c], pFile);
     }
     //put a newline to signify the end of the line, used when reading
     fputc('\n', pFile);
@@ -90,10 +197,10 @@ or will return NULL if an error was encountered.
 Also takes in pointers to the ROWS and COLUMNS, so that they can be changed to the
 correct values
 */
-char **loadFile(int *ROWS, int *COLUMNS) {
+char **loadFile() {
 
   printf("Please enter in the file name to be loaded\n");
-  char *fileName = getInput();
+  char *fileName = getInput(32);
   //open the file in read mode
   FILE *pFile = attemptOpen(fileName, "r");
 
@@ -115,11 +222,11 @@ char **loadFile(int *ROWS, int *COLUMNS) {
     }
   }
 
-  *ROWS = c;
+  ROWS = c;
   //don't need to cast to a float as this will always be a whole number
-  *COLUMNS = i/c;
+  COLUMNS = i/c;
 
-  char** boardToLoad = malloc((*ROWS) * sizeof(char *));
+  char** boardToLoad = malloc((ROWS) * sizeof(char *));
 
   if (boardToLoad == NULL) {
 
@@ -127,9 +234,9 @@ char **loadFile(int *ROWS, int *COLUMNS) {
     return NULL;
   }
 
-  for (i = 0; i < *ROWS; i++) {
+  for (i = 0; i < ROWS; i++) {
 
-    boardToLoad[i] = (char *) malloc((*COLUMNS) * sizeof(char));
+    boardToLoad[i] = (char *) malloc((COLUMNS) * sizeof(char));
 
     if (boardToLoad[i] == NULL) {
 
@@ -155,4 +262,38 @@ char **loadFile(int *ROWS, int *COLUMNS) {
 
   fclose(pFile);
   return boardToLoad;
+}
+
+//clears the stdin
+void clearBuffer(char *input) {
+  while ((*input = getchar()) != '\n' && *input !=EOF) {  }
+}
+
+//frees memory used by automata
+void freeAutomata() {
+
+  for (size_t i = 0; i < ROWS; i++) {
+    free(automata[i]);
+  }
+}
+
+//used exclusively for testing and shouldn't be submitted in final version
+char **testAutomata() {
+
+  ROWS = 2;
+  COLUMNS = 2;
+
+  automata = malloc(sizeof(char) * ROWS);
+
+  for (size_t i = 0; i < ROWS; i++) {
+    automata[i] = malloc(sizeof(char) * COLUMNS);
+  }
+
+  for (size_t i = 0; i < ROWS; i++) {
+    for (size_t c = 0; c < COLUMNS; c++) {
+      automata[i][c] = '0';
+    }
+  }
+
+  return automata;
 }
