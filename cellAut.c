@@ -3,6 +3,7 @@
   AC21009 COURSEWORK 2, TEAM 21
         AUTHORS: Daniel Kevin Blackley (160007728)
                  Esther Bolik (170010779)
+                 Michael Wamarema (150024823)
   LAST MODIFIED: 2018-11-01
 */
 
