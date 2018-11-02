@@ -9,15 +9,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <wchar.h>
 
 #include "cellAut.h"
 
+// global settings variables for the current automaton
 unsigned char rule; // The current rule (0..255)
 char **output = NULL; // The output of the automaton, as a 2-dimensional array
 size_t rows, columns; // The dimensions of the output array
 bool xWrap; // Whether or not to wrap the automaton on the x axis (if false, OOB parents will be treated as 0)
-wchar_t cTrue, cFalse; // Characters to use when displaying the automaton's output
+char cTrue, cFalse; // Characters to use when displaying the automaton's output
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -47,8 +47,6 @@ void menu() {
   //set the output to NULL, so we know if the user actually has an automaton currently set up
   output = NULL;
   rows = columns = 0;
-
-  output = testAutomaton();
 
   printf("\n\nType 1 to Change the settings for the Automaton:\n");
   printf("Type 2 to run the Cellular Automaton:\n");
@@ -107,24 +105,100 @@ void menu() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-char *getInput(size_t bufsize) {
-
-  fseek(stdin,0,SEEK_END);
-
-  //buffer holds the input from getLine
-  char *buffer;
-
-  buffer = (char *)malloc(bufsize * sizeof(char));
-  if( buffer == NULL) {
-
-        printf("Malloc fail, Out of memoy.\n");
-        return NULL;
-    }
-
-    fgets(buffer, bufsize, stdin);
-
-    return buffer;
+void initOutput() {
+  output = malloc(sizeof(char*) * rows);
+  for (size_t i = 0; i < rows; i++) {
+    output[i] = malloc(sizeof(char) * columns);
+  }
 }
+
+void freeOutput() {
+  for (size_t i = 0; i < rows; i++) {
+    free(output[i]);
+  }
+  free(output);
+  output = NULL;
+}
+
+int printLine(size_t line) {
+  if (output == NULL) {
+    fprintf(stderr, "printLine: Output array has not been initialised\n");
+    return 0;
+  }
+  if (line < 0 || line > rows - 1) {
+    fprintf(stderr, "printLine: %zu is out of bounds\n", line);
+    return 0;
+  }
+
+  for (size_t i = 0; i < columns; i++) { // for each cell
+    if (output[line][i]) {
+      printf("%c", cTrue);
+    } else {
+      printf("%c", cFalse);
+    }
+  }
+  printf("\n");
+  return 1;
+}
+
+int printOutput() {
+  if (output == NULL) {
+    fprintf(stderr, "printOutput: Output array has not been initialised\n");
+    return 0;
+  }
+
+  for (size_t i = 0; i < rows; i++) { // for each row
+    if (!printLine(i)) { return 0; }
+  }
+  return 1;
+}
+
+int runAutomaton(bool printOutput) {
+  if (output == NULL) {
+    fprintf(stderr, "runAutomaton: Output array has not been initialised\n");
+    return 0;
+  }
+
+  if (printOutput) { printLine(0); } // print the initial line
+
+  for (size_t row = 1; row < rows; row++) { // for each row except the first
+    for (size_t col = 0; col < columns; col++) { // for each cell in the row
+      char lParent;
+      if (col > 0) {
+        lParent = (output[row - 1][col - 1]);
+      } else if (xWrap) {
+        lParent = output[row - 1][columns - 1];
+      } else {
+        lParent = 0;
+      }
+
+      char cParent = output[row - 1][col];
+
+      char rParent;
+      if (col < columns - 1) {
+        rParent = output[row - 1][col + 1];
+      } else if (xWrap) {
+        rParent = output[row - 1][0];
+      } else {
+        rParent = 0;
+      }
+
+      // treat the cell's parents as a three-bit binary number
+      char parents = (lParent * 4) + (cParent * 2) + rParent;
+      if (parents < 0 || parents >= 8) {
+        fprintf(stderr, "runAutomaton: State of parents was %hhd/%hhd/%hhd (%hhd) for cell [%zu][%zu]\n", lParent, cParent, rParent, parents, row, col);
+        return 0;
+      }
+
+      // check that bit of the rule and store it in the current cell
+      output[row][col] = !!(rule & (1 << parents));
+    }
+    if (printOutput) { printLine(row); }
+  }
+  return 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 /*
 This function attempts to open the given file in read or write mode
@@ -138,7 +212,7 @@ FILE *attemptOpen(char* fileName, char* mode) {
   pFile = fopen(fileName, mode);
 
   if (pFile == NULL) {
-    printf("ERR: Directory or File does not exist.\n");
+    fprintf(stderr, "The file '%s' does not exist.\n", fileName);
   }
 
   free(fileName);
@@ -159,7 +233,7 @@ int saveFile() {
   }
 
   printf("Please enter in the file name to be saved\n");
-  char *fileName = getInput(32);
+  char *fileName = getInput(256);
   //Open file in write mode
   FILE *pFile = attemptOpen(fileName, "w");
 
@@ -194,7 +268,7 @@ correct values
 char **loadFile() {
 
   printf("Please enter in the file name to be loaded\n");
-  char *fileName = getInput(32);
+  char *fileName = getInput(256);
   //open the file in read mode
   FILE *pFile = attemptOpen(fileName, "r");
 
@@ -258,121 +332,44 @@ char **loadFile() {
   return boardToLoad;
 }
 
-//clears the stdin
-void clearBuffer(char *input) {
-  while ((*input = getchar()) != '\n' && *input !=EOF) {  }
-}
+////////////////////////////////////////////////////////////////////////////////
 
-//frees memory used by output array
-void freeOutput() {
-  for (size_t i = 0; i < rows; i++) {
-    free(output[i]);
-  }
-  free(output);
-}
+/* // this is a WIP; i was trying to improve the old getInput (perhaps needlessly), but i haven't tested this one yet... -EB
+int getInput(char *str, size_t *size) {
 
-//used exclusively for testing and shouldn't be submitted in final version
-char **testAutomaton() {
+  clearBuffer();
 
-  rows = 2;
-  columns = 2;
-
-  output = malloc(sizeof(char) * rows);
-
-  for (size_t i = 0; i < rows; i++) {
-    output[i] = malloc(sizeof(char) * columns);
-  }
-
-  for (size_t i = 0; i < rows; i++) {
-    for (size_t c = 0; c < columns; c++) {
-      output[i][c] = '0';
-    }
-  }
-
-  return output;
-}
-
-void initOutput() {
-  output = malloc(sizeof(char*) * rows);
-  for (size_t i = 0; i < rows; i++) {
-    output[i] = malloc(sizeof(char) * columns);
-  }
-}
-
-int runAutomaton(bool printOutput) {
-  if (output == NULL) {
-    fprintf(stderr, "runAutomaton: Output array has not been initialised\n");
+  str = (char*)malloc(*size * sizeof(char));
+  if (str == NULL) {
+    fprintf(stderr, "ERROR: Out of memory\n");
     return 0;
   }
 
-  if (printOutput) { printLine(0); } // print the initial line
-
-  for (size_t row = 1; row < rows; row++) { // for each row except the first
-    for (size_t col = 0; col < columns; col++) { // for each cell in the row
-      char lParent;
-      if (col > 0) {
-        lParent = (output[row - 1][col - 1]);
-      } else if (xWrap) {
-        lParent = output[row - 1][columns - 1];
-      } else {
-        lParent = 0;
-      }
-
-      char cParent = output[row - 1][col];
-
-      char rParent;
-      if (col < columns - 1) {
-        rParent = output[row - 1][col + 1];
-      } else if (xWrap) {
-        rParent = output[row - 1][0];
-      } else {
-        rParent = 0;
-      }
-
-      // treat the cell's parents as a three-bit binary number
-      char parents = (lParent * 4) + (cParent * 2) + rParent;
-      if (parents < 0 || parents >= 8) {
-        fprintf(stderr, "runAutomaton: State of parents was %hhd/%hhd/%hhd (%hhd) for cell [%zu][%zu]\n", lParent, cParent, rParent, parents, row, col);
-        return 0;
-      }
-
-      // check that bit of the rule and store it in the current cell
-      output[row][col] = !!(rule & (1 << parents));
-    }
-    if (printOutput) { printLine(row); }
-  }
+  getline(&str, size, stdin);
   return 1;
 }
+*/
 
-int printLine(size_t line) {
-  if (output == NULL) {
-    fprintf(stderr, "printLine: Output array has not been initialised\n");
-    return 0;
-  }
-  if (line < 0 || line > rows - 1) {
-    fprintf(stderr, "printLine: %zu is out of bounds\n", line);
-    return 0;
-  }
+char *getInput(size_t bufsize) {
 
-  for (size_t i = 0; i < columns; i++) { // for each cell
-    if (output[line][i]) {
-      printf("%c", cTrue);
-    } else {
-      printf("%c", cFalse);
+  fseek(stdin,0,SEEK_END);
+
+  //buffer holds the input from getLine
+  char *buffer;
+
+  buffer = (char *)malloc(bufsize * sizeof(char));
+  if( buffer == NULL) {
+
+        printf("Malloc fail, Out of memoy.\n");
+        return NULL;
     }
-  }
-  printf("\n");
-  return 1;
+
+    fgets(buffer, bufsize, stdin);
+
+    return buffer;
 }
 
-int printOutput() {
-  if (output == NULL) {
-    fprintf(stderr, "printOutput: Output array has not been initialised\n");
-    return 0;
-  }
-
-  for (size_t i = 0; i < rows; i++) { // for each row
-    if (!printLine(i)) { return 0; }
-  }
-  return 1;
+void clearBuffer() {
+  char input;
+  while ((input = getchar()) != '\n' && input != EOF) {  }
 }

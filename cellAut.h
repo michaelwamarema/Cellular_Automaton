@@ -4,26 +4,18 @@
 // to exit.
 void menu();
 
-// Gets input from the user 
-char *getInput(size_t bufsize);
-
-FILE *attemptOpen(char* fileName, char* mode);
-
-int saveFile();
-
-char **loadFile();
-
-void clearBuffer(char *input);
-
-// 
-void freeOutput();
-
-// TODO: DELETE THIS
-char **testAutomaton();
-
 // Initialises the output array.
 // Makes no guarantee of the initial line being empty.
 void initOutput();
+
+// Frees the output array and sets output to NULL.
+void freeOutput();
+
+// Prints a single, specified line of the output array
+int printLine(size_t line);
+
+// Prints the entire output array
+int printOutput();
 
 // Runs the automaton with the current settings, populating the rest of the
 // output array (the first line must already be populated).
@@ -31,8 +23,15 @@ void initOutput();
 // calculated.
 int runAutomaton(bool printOutput);
 
-// Prints a single, specified line of the output array
-int printLine(size_t line);
+FILE *attemptOpen(char* fileName, char* mode);
 
-// Prints the entire output array
-int printOutput();
+int saveFile();
+
+char **loadFile();
+
+// Gets input from the user
+//int getInput(char *str, size_t *size);
+char *getInput(size_t bufsize);
+
+// Clears the stdin buffer
+void clearBuffer();
