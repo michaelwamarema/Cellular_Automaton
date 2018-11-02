@@ -1,29 +1,40 @@
+/*
+  CELLULAR AUTOMATON IN C
+  AC21009 COURSEWORK 2, TEAM 21
+        AUTHORS: Daniel Kevin Blackley (160007728)
+                 Esther Bolik (170010779)
+  LAST MODIFIED: 2018-11-01
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <wchar.h>
 
-char **loadFile();
-int saveFile();
-FILE *attemptOpen(char* fileName, char* mode);
-char *getInput(size_t bufsize);
-void freeAutomata();
-void menu();
-void clearBuffer(char *input);
-char **testAutomata();
-int printAutomata();
+#include "cellAut.h"
 
-//Make Automata and it's dimensions availible to all functions
-char **automata;
-int ROWS, COLUMNS;
-/*
-Daniel Kevin Blackley - 160007728
-*/
+unsigned char rule; // The current rule (0..255)
+char **output = NULL; // The output of the automaton, as a 2-dimensional array
+size_t rows, columns; // The dimensions of the output array
+bool xWrap; // Whether or not to wrap the automaton on the x axis (if false, OOB parents will be treated as 0)
+wchar_t cTrue, cFalse; // Characters to use when displaying the automaton's output
 
-/*
-The following function uses the getLine function to get input fromt he user, it then
-returns that input to the user
-*/
+////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char const *argv[]) {
+  rule = 30;
+  rows = 20;
+  columns = (rows * 2) - 1;
+  initOutput();
+  for (size_t i = 0; i < columns; i++) { output[0][i] = 0; }
+  output[0][rows-1] = 1;
+  xWrap = false;
+  cTrue = 'X';
+  cFalse = ' ';
+
+  runAutomaton(true);
+  freeOutput();
+
   menu();
   return 0;
 }
@@ -33,17 +44,17 @@ void menu() {
   char *input;
   printf("Please select and option from below:\n");
 
-  //set the automata to NULL, so we know if the user actually has an automata currently set up
-  automata = NULL;
-  ROWS = COLUMNS = 0;
+  //set the output to NULL, so we know if the user actually has an automaton currently set up
+  output = NULL;
+  rows = columns = 0;
 
-  automata = testAutomata();
+  output = testAutomaton();
 
-  printf("\n\nType 1 to Change the settings for the Automata:\n");
-  printf("Type 2 to run the Cellular Automata:\n");
-  printf("Type 3 to Load an Automata from a file:\n");
-  printf("Type 4 to save the most recent Automata to a file:\n");
-  printf("Type 5 to Print out current automata\n");
+  printf("\n\nType 1 to Change the settings for the Automaton:\n");
+  printf("Type 2 to run the Cellular Automaton:\n");
+  printf("Type 3 to Load an Automaton from a file:\n");
+  printf("Type 4 to save the most recent Automaton to a file:\n");
+  printf("Type 5 to Print out current automaton\n");
   printf("Type 0 to exit:\n");
 
   //get input from the getInput function
@@ -56,13 +67,13 @@ void menu() {
         break;
       case '2':
         clearBuffer(input);
-        //function to run the Automata
+        //function to run the Automaton
         break;
       case '3':
         clearBuffer(input);
-        automata = loadFile();
-        //if automata hasn't yet been initialised
-        if (automata == NULL) {
+        output = loadFile();
+        //if automaton hasn't yet been initialised
+        if (output == NULL) {
           printf("Error encountered\n");
         }
         break;
@@ -74,7 +85,7 @@ void menu() {
         break;
       case '5':
         clearBuffer(input);
-        if(!printAutomata()) {
+        if(!printOutput()) {
           printf("Error Encountered\n");
         }
         break;
@@ -83,35 +94,18 @@ void menu() {
         break;
     }
 
-    printf("\n\nType 1 to Change the settings for the Automata:\n");
-    printf("Type 2 to run the Cellular Automata:\n");
-    printf("Type 3 to Load an Automata from a file:\n");
-    printf("Type 4 to save the most recent Automata to a file:\n");
-    printf("Type 5 to Print out current automata\n");
+    printf("\n\nType 1 to Change the settings for the Automaton:\n");
+    printf("Type 2 to run the Cellular Automaton:\n");
+    printf("Type 3 to Load an Automaton from a file:\n");
+    printf("Type 4 to save the most recent Automaton to a file:\n");
+    printf("Type 5 to Print out current automaton\n");
     printf("Type 0 to exit:\n");
   }
 
-  freeAutomata();
+  freeOutput();
 }
 
-int printAutomata() {
-
-  if (automata == NULL) {
-    printf("No automata currently loaded\n");
-    return 0;
-  }
-  printf("Current automata:\n\n\n");
-
-  for (size_t i = 0; i < ROWS; i++) {
-    for (size_t c = 0; c < COLUMNS; c++) {
-      printf("%c", automata[i][c]);
-    }
-    printf("\n");
-  }
-
-  return 1;
-}
-
+////////////////////////////////////////////////////////////////////////////////
 
 char *getInput(size_t bufsize) {
 
@@ -123,7 +117,7 @@ char *getInput(size_t bufsize) {
   buffer = (char *)malloc(bufsize * sizeof(char));
   if( buffer == NULL) {
 
-        printf("Malloc fail, Out of memoy.");
+        printf("Malloc fail, Out of memoy.\n");
         return NULL;
     }
 
@@ -155,12 +149,12 @@ FILE *attemptOpen(char* fileName, char* mode) {
 /*
 The following function saves the array to a file and then returns 0 if a error
 was encountered or 1 if it was successful. The parameters are the array to be
-written to file and the numbers of ROWS and COLUMNS the array has
+written to file and the numbers of rows and columns the array has
 */
 int saveFile() {
 
-  if (automata == NULL) {
-    printf("Cannot save NULL automata\n");
+  if (output == NULL) {
+    printf("Cannot save NULL output\n");
     return 0;
   }
 
@@ -175,10 +169,10 @@ int saveFile() {
   }
 
   //Loop writes the array to a file
-  for (size_t i = 0; i < ROWS ; i++) {
-    for (size_t c = 0; c < COLUMNS ; c++) {
+  for (size_t i = 0; i < rows ; i++) {
+    for (size_t c = 0; c < columns ; c++) {
 
-      fputc(automata[i][c], pFile);
+      fputc(output[i][c], pFile);
     }
     //put a newline to signify the end of the line, used when reading
     fputc('\n', pFile);
@@ -194,7 +188,7 @@ The following function loads a file using the fopen function, It then Prompts th
 for a filename to open, and returns a 2d pointer array to what was found within the file
 or will return NULL if an error was encountered.
 
-Also takes in pointers to the ROWS and COLUMNS, so that they can be changed to the
+Also takes in pointers to the rows and columns, so that they can be changed to the
 correct values
 */
 char **loadFile() {
@@ -222,11 +216,11 @@ char **loadFile() {
     }
   }
 
-  ROWS = c;
+  rows = c;
   //don't need to cast to a float as this will always be a whole number
-  COLUMNS = i/c;
+  columns = i/c;
 
-  char** boardToLoad = malloc((ROWS) * sizeof(char *));
+  char** boardToLoad = malloc((rows) * sizeof(char *));
 
   if (boardToLoad == NULL) {
 
@@ -234,9 +228,9 @@ char **loadFile() {
     return NULL;
   }
 
-  for (i = 0; i < ROWS; i++) {
+  for (i = 0; i < rows; i++) {
 
-    boardToLoad[i] = (char *) malloc((COLUMNS) * sizeof(char));
+    boardToLoad[i] = (char *) malloc((columns) * sizeof(char));
 
     if (boardToLoad[i] == NULL) {
 
@@ -269,31 +263,116 @@ void clearBuffer(char *input) {
   while ((*input = getchar()) != '\n' && *input !=EOF) {  }
 }
 
-//frees memory used by automata
-void freeAutomata() {
-
-  for (size_t i = 0; i < ROWS; i++) {
-    free(automata[i]);
+//frees memory used by output array
+void freeOutput() {
+  for (size_t i = 0; i < rows; i++) {
+    free(output[i]);
   }
+  free(output);
 }
 
 //used exclusively for testing and shouldn't be submitted in final version
-char **testAutomata() {
+char **testAutomaton() {
 
-  ROWS = 2;
-  COLUMNS = 2;
+  rows = 2;
+  columns = 2;
 
-  automata = malloc(sizeof(char) * ROWS);
+  output = malloc(sizeof(char) * rows);
 
-  for (size_t i = 0; i < ROWS; i++) {
-    automata[i] = malloc(sizeof(char) * COLUMNS);
+  for (size_t i = 0; i < rows; i++) {
+    output[i] = malloc(sizeof(char) * columns);
   }
 
-  for (size_t i = 0; i < ROWS; i++) {
-    for (size_t c = 0; c < COLUMNS; c++) {
-      automata[i][c] = '0';
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t c = 0; c < columns; c++) {
+      output[i][c] = '0';
     }
   }
 
-  return automata;
+  return output;
+}
+
+void initOutput() {
+  output = malloc(sizeof(char*) * rows);
+  for (size_t i = 0; i < rows; i++) {
+    output[i] = malloc(sizeof(char) * columns);
+  }
+}
+
+int runAutomaton(bool printOutput) {
+  if (output == NULL) {
+    fprintf(stderr, "runAutomaton: Output array has not been initialised\n");
+    return 0;
+  }
+
+  if (printOutput) { printLine(0); } // print the initial line
+
+  for (size_t row = 1; row < rows; row++) { // for each row except the first
+    for (size_t col = 0; col < columns; col++) { // for each cell in the row
+      char lParent;
+      if (col > 0) {
+        lParent = (output[row - 1][col - 1]);
+      } else if (xWrap) {
+        lParent = output[row - 1][columns - 1];
+      } else {
+        lParent = 0;
+      }
+
+      char cParent = output[row - 1][col];
+
+      char rParent;
+      if (col < columns - 1) {
+        rParent = output[row - 1][col + 1];
+      } else if (xWrap) {
+        rParent = output[row - 1][0];
+      } else {
+        rParent = 0;
+      }
+
+      // treat the cell's parents as a three-bit binary number
+      char parents = (lParent * 4) + (cParent * 2) + rParent;
+      if (parents < 0 || parents >= 8) {
+        fprintf(stderr, "runAutomaton: State of parents was %hhd/%hhd/%hhd (%hhd) for cell [%zu][%zu]\n", lParent, cParent, rParent, parents, row, col);
+        return 0;
+      }
+
+      // check that bit of the rule and store it in the current cell
+      output[row][col] = !!(rule & (1 << parents));
+    }
+    if (printOutput) { printLine(row); }
+  }
+  return 1;
+}
+
+int printLine(size_t line) {
+  if (output == NULL) {
+    fprintf(stderr, "printLine: Output array has not been initialised\n");
+    return 0;
+  }
+  if (line < 0 || line > rows - 1) {
+    fprintf(stderr, "printLine: %zu is out of bounds\n", line);
+    return 0;
+  }
+
+  for (size_t i = 0; i < columns; i++) { // for each cell
+    if (output[line][i]) {
+      printf("%c", cTrue);
+    } else {
+      printf("%c", cFalse);
+    }
+  }
+  printf("\n");
+  return 1;
+}
+
+int printOutput() {
+  if (output == NULL) {
+    fprintf(stderr, "printOutput: Output array has not been initialised\n");
+    return 0;
+  }
+
+  for (size_t i = 0; i < rows; i++) { // for each row
+    if (!printLine(i)) { return 0; }
+  }
+  return 1;
 }
