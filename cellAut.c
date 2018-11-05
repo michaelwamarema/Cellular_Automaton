@@ -4,7 +4,7 @@
         AUTHORS: Daniel Kevin Blackley (160007728)
                  Esther Bolik (170010779)
                  Michael Wamarema (150024823)
-  LAST MODIFIED: 2018-11-01
+  LAST MODIFIED: 2018-11-05
 */
 
 #include <stdio.h>
@@ -82,7 +82,7 @@ void menu() {
     printf("================================");
     printf(" [1] Run 1D automaton\n");
     printf(" [2] Run Game of Life\n");
-    //printf(" [3] Load automaton\n");
+    printf(" [3] Load Game of Life state\n");
     //printf(" [4] Save the most recent automaton to a file:\n");
     //printf(" [5] Print out current automaton\n");
     printf(" [0] Exit program\n");
@@ -111,6 +111,10 @@ void menu() {
           initOutput();
           // TODO: setup initial state
           // TODO: enter game of life menu
+          break;
+
+        case 3:
+          // TODO
           break;
 /*
         case 3:
@@ -614,7 +618,6 @@ int saveFile() {
   //Loop writes the array to a file
   for (size_t i = 0; i < rows ; i++) {
     for (size_t c = 0; c < columns ; c++) {
-
       fputc(output[i][c], pFile);
     }
     //put a newline to signify the end of the line, used when reading
