@@ -17,7 +17,7 @@ static void setRule(int n)
 		}
 		else
 		{
-			rule[pos] = 0; 
+			rule[pos] = 0;
 			pos++;
 		}
 	}
@@ -66,12 +66,3 @@ static void drawSettings()
 
 	display();
 }
-
-
-
-
-
-
-
-
-

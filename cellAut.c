@@ -139,6 +139,56 @@ void menu() {
   freeOutput();
 }
 
+int setupOptions(int *crows, int *columns, int *currentRule)
+{
+
+  int errorCheck = 1;
+
+  printf("Please enter the desired rule (0-255): ");
+  errorCheck = scanf("%d", currentRule);
+
+  if (errorCheck == EOF) {
+    printf("Error printing to stdin\n");
+    return errorCheck;
+  } else if (errorCheck == 0) {
+    printf("Non integer detected\n");
+    return 0;
+  }
+
+  if (*currentRule > 0 || *currentRule < 255) {
+    printf("Please enter the number of rows: ");
+    errorCheck = scanf("%d", crows);
+
+    if (errorCheck == EOF) {
+      printf("Error printing to stdin\n");
+      return errorCheck;
+    } else if (errorCheck == 0) {
+      printf("Non integer detected\n");
+      return 0;
+    }
+
+
+    printf("Please enter the number of columns: ");
+    scanf("%d", columns);
+
+    if (errorCheck == EOF) {
+      printf("Error printing to stdin\n");
+      return errorCheck;
+    } else if (errorCheck == 0) {
+      printf("Non integer detected\n");
+      return 0;
+    }
+
+    printf("Rule: %d      Rows: %d     Columns: %d\n\n ", *currentRule, *crows, *columns);
+
+  } else {
+    printf("Number %d is Not between 0 and 255\n", *currentRule);
+   return 0;
+  }
+
+  return errorCheck;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -240,6 +290,7 @@ int runAutomaton(bool printOutput) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+<<<<<<< HEAD
 int runGameOfLife(int generations) {
   if (output == NULL) {
     fprintf(stderr, "runGameOfLife: Output array has not been initialised\n");
@@ -500,27 +551,40 @@ int getInput(char **str, size_t *size) {
   return 1;
 }
 
-/*
-char *getInput(size_t bufsize) {
-
-  fseek(stdin,0,SEEK_END);
-
-  //buffer holds the input from getLine
-  char *buffer;
-
-  buffer = (char *)malloc(bufsize * sizeof(char));
-  if( buffer == NULL) {
-
-        printf("Malloc fail, Out of memoy.\n");
-        return NULL;
-    }
-
-    fgets(buffer, bufsize, stdin);
-
-    return buffer;
-}*/
-
 void clearBuffer() {
   char input;
   while ((input = getchar()) != '\n' && input != EOF) {  }
+}
+
+int *returnBinary(uint8_t n)
+{
+
+  int *binary;
+  int count, j, pos;
+  count = pos = 0;
+
+  binary = malloc(sizeof(int) * 8);
+
+  if (binary == NULL) {
+    return binary;
+  }
+
+  for(count = 7; count >= 0; count--)
+  {
+    u_int8_t k = n >> count;
+
+    if(k & 1)
+    {
+      binary[pos] = 1;
+      pos++;
+    }
+    else
+    {
+      binary[pos] = 0;
+      pos++;
+    }
+  }
+
+
+  return binary;
 }
