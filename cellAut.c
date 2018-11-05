@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "cellAut.h"
 
@@ -18,7 +19,7 @@
 /* global variables for the current automaton */
 
 // The current rule (0..255). Only used for 1D automata.
-unsigned char rule = 0;
+unsigned char rule = 30;
 
 // The output of the automaton, as a 2-dimensional array.
 // Note that for 1D automata, each row of this array is an individual
@@ -30,8 +31,8 @@ char **output = NULL;
 // The dimensions of the output array.
 // rows represents rows of cells in the Game of Life, but represents generations
 // in 1D automata. columns always represents columns of cells.
-size_t rows = 1;
-size_t columns = 1;
+size_t rows = 5;
+size_t columns = 9;
 
 // Whether or not to wrap the automaton on the x axis (if false, OOB parents will be treated as 0)
 bool xWrap = false;
@@ -48,6 +49,7 @@ char cFalse = ' ';
 // note: all function descriptions are located in cellAut.h
 
 int main(int argc, char const *argv[]) {
+  /*
   rule = 30;
   rows = 20;
   columns = (rows * 2) - 1;
@@ -67,7 +69,7 @@ int main(int argc, char const *argv[]) {
   printOutput();
   runGameOfLife(1);
   printOutput();
-  freeOutput();
+  freeOutput();*/
 
   menu();
   return 0;
@@ -75,6 +77,9 @@ int main(int argc, char const *argv[]) {
 
 void menu() {
   while (true) { // loop until the function is returned from
+    printf("================================");
+    printf("    CELLULAR AUTOMATA - MENU    ");
+    printf("================================");
     printf(" [1] Run 1D automaton\n");
     printf(" [2] Run Game of Life\n");
     //printf(" [3] Load automaton\n");
@@ -86,22 +91,25 @@ void menu() {
     do {
       printf("Please enter a number: ");
       int input;
-      clearBuffer();
       int status = scanf("%d", &input);
+      clearBuffer();
       if (status <= 0) { // ie. they did not enter a number
         continue;
       }
 
       switch (input) {
         case 1:
-          // TODO: function for changing settings goes here
+          setupOptions(false);
+          initOutput();
+          // TODO: setup initial row
           runAutomaton(true);
           // TODO: prompt to save
           break;
 
         case 2:
-          clearBuffer();
-          // TODO: function for changing settings goes here
+          setupOptions(true);
+          initOutput();
+          // TODO: setup initial state
           // TODO: enter game of life menu
           break;
 /*
@@ -139,54 +147,228 @@ void menu() {
   freeOutput();
 }
 
-int setupOptions(int *crows, int *columns, int *currentRule)
-{
+////////////////////////////////////////////////////////////////////////////////
 
-  int errorCheck = 1;
+int setupOptions(bool gameOfLife) {
+  printf("Leave a field blank at any point to cancel setup and undo your choices.\n");
+  // temporary variables; if the user cancels, the global variables are unchanged
+  unsigned char tRule;
+  size_t tRows, tCols;
+  int tXWrap, tYWrap;
+  char tCTrue, tCFalse;
 
-  printf("Please enter the desired rule (0-255): ");
-  errorCheck = scanf("%d", currentRule);
+  bool looping;
 
-  if (errorCheck == EOF) {
-    printf("Error printing to stdin\n");
-    return errorCheck;
-  } else if (errorCheck == 0) {
-    printf("Non integer detected\n");
-    return 0;
+  // rule (if 1d automaton)
+  if (!gameOfLife) {
+    do {
+      looping = false;
+      clearBuffer();
+      printf("Please enter the desired rule (0-255) [previous: %hhu]: ", rule);
+
+      int n = scanf("%hhu", &tRule);
+      clearBuffer();
+      if (n == EOF) {
+        fprintf(stderr, "\nsetupOptions: EOF error when reading from stdin\n");
+        return 0;
+
+      } else if (n == 0) {
+        if (getchar() == '\n') { // field was left blank
+          printf("Setup cancelled.\n");
+          return 0;
+
+        } else {
+          printf("That was not a valid rule. ");
+          looping = true;
+        }
+      }
+    } while (looping);
+    char *ruleBin = toBinary(tRule);
+    printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
+    free(ruleBin);
   }
 
-  if (*currentRule > 0 || *currentRule < 255) {
-    printf("Please enter the number of rows: ");
-    errorCheck = scanf("%d", crows);
-
-    if (errorCheck == EOF) {
-      printf("Error printing to stdin\n");
-      return errorCheck;
-    } else if (errorCheck == 0) {
-      printf("Non integer detected\n");
-      return 0;
+  // columns
+  do {
+    looping = false;
+    if (gameOfLife) {
+      printf("Please enter the number of columns in the grid [previous: %zu]: ", columns);
+    } else {
+      printf("Please enter the number of cells in each generation (ie. columns) [previous: %zu]: ", columns);
     }
 
-
-    printf("Please enter the number of columns: ");
-    scanf("%d", columns);
-
-    if (errorCheck == EOF) {
-      printf("Error printing to stdin\n");
-      return errorCheck;
-    } else if (errorCheck == 0) {
-      printf("Non integer detected\n");
+    int n = scanf("%zu", &tCols);
+    clearBuffer();
+    if (n == EOF) {
+      fprintf(stderr, "\nsetupOptions: EOF error when reading from stdin\n");
       return 0;
+
+    } else if (n == 0) {
+      if (getchar() == '\n') {
+        printf("Setup cancelled.\n");
+        return 0;
+
+      } else {
+        printf("That was not a valid number. ");
+        looping = true;
+      }
+
+    } else if (tCols == 0) {
+      printf("You must have at least one column. ");
+      looping = true;
+    }
+  } while (looping);
+  printf("Set column number to %zu.\n", tCols);
+
+  // rows
+  do {
+    looping = false;
+    if (gameOfLife) {
+      printf("Please enter the number of rows in the grid [previous: %zu]: ", rows);
+    } else {
+      printf("Please enter the number of generations to iterate through (ie. rows) [previous: %zu]: ", rows);
     }
 
-    printf("Rule: %d      Rows: %d     Columns: %d\n\n ", *currentRule, *crows, *columns);
+    int n = scanf("%zu", &tRows);
+    clearBuffer();
+    if (n == EOF) {
+      fprintf(stderr, "\nsetupOptions: EOF error when reading from stdin\n");
+      return 0;
 
-  } else {
-    printf("Number %d is Not between 0 and 255\n", *currentRule);
-   return 0;
+    } else if (n == 0) {
+      if (getchar() == '\n') {
+        printf("Setup cancelled.\n");
+        return 0;
+
+      } else {
+        printf("That was not a valid number. ");
+        looping = true;
+      }
+
+    } else if (tRows == 0) {
+      printf("You must have at least one row. ");
+      looping = true;
+    }
+  } while (looping);
+  printf("Set row number to %zu.\n", tRows);
+
+  // xWrap
+  do {
+    looping = false;
+    if (gameOfLife) {
+      printf("Do you want to wrap the left and right sides of the grid? [y/n]: ");
+    } else {
+      printf("Do you want to wrap the left and right sides of each line? [y/n]: ");
+    }
+
+    tXWrap = getBool();
+    if (tXWrap == -1) {
+      fprintf(stderr, "\nsetupOptions: Error when reading from stdin\n");
+      return 0;
+
+    } else if (tXWrap == -2) {
+      printf("Setup cancelled.\n");
+      return 0;
+
+    } else if (tXWrap == -3) {
+      printf("Please type 'yes' or 'no'. ");
+      looping = true;
+
+    }
+  } while (looping);
+  char *str = NULL;
+  boolToString(tXWrap, str);
+  printf("Set x-wrap to '%s'.\n", str);
+  free(str);
+
+  // yWrap
+  if (gameOfLife) {
+    do {
+      looping = false;
+      printf("Do you want to wrap the top and bottom sides of the grid? [y/n]: ");
+
+      tYWrap = getBool();
+      if (tYWrap == -1) {
+        fprintf(stderr, "\nsetupOptions: Error when reading from stdin\n");
+        return 0;
+
+      } else if (tYWrap == -2) {
+        printf("Setup cancelled.\n");
+        return 0;
+
+      } else if (tYWrap == -3) {
+        printf("Please type 'yes' or 'no'. ");
+        looping = true;
+
+      }
+    } while (looping);
+    char *str = NULL;
+    boolToString(tYWrap, str);
+    printf("Set y-wrap to '%s'.\n", str);
+    free(str);
   }
 
-  return errorCheck;
+  // cTrue
+  do {
+    looping = false;
+    printf("Please enter a single character to use for 'populated' cells [previous: '%c']: ", cTrue);
+
+    int n = scanf("%c", &tCTrue);
+    clearBuffer();
+    if (n == EOF) {
+      fprintf(stderr, "\nsetupOptions: EOF error when reading from stdin\n");
+      return 0;
+
+    } else if (n == 0) {
+      if (getchar() == '\n') {
+        printf("Setup cancelled.\n");
+        return 0;
+
+      } else {
+        // i'm not sure that this can even happen..?
+        printf("That was not a valid character. ");
+        looping = true;
+      }
+
+    }
+  } while (looping);
+  printf("Set 'populated cell' character to '%c'.\n", tCTrue);
+
+  // cFalse
+  do {
+    looping = false;
+    printf("Please enter a single character to use for 'empty' cells [previous: '%c']: ", cFalse);
+
+    int n = scanf("%c", &tCFalse);
+    clearBuffer();
+    if (n == EOF) {
+      fprintf(stderr, "\nsetupOptions: EOF error when reading from stdin\n");
+      return 0;
+
+    } else if (n == 0) {
+      if (getchar() == '\n') {
+        printf("Setup cancelled.\n");
+        return 0;
+
+      } else {
+        printf("That was not a valid character. ");
+        looping = true;
+      }
+
+    }
+  } while (looping);
+  printf("Set 'empty cell' character to '%c'.\n", tCFalse);
+
+
+  if (!gameOfLife) { rule = tRule; }
+  columns = tCols;
+  rows = tRows;
+  xWrap = tXWrap;
+  if (gameOfLife) { yWrap = tYWrap; }
+  cTrue = tCTrue;
+  cFalse = tCFalse;
+  printf("Setup complete!\n");
+  return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -290,7 +472,6 @@ int runAutomaton(bool printOutput) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-<<<<<<< HEAD
 int runGameOfLife(int generations) {
   if (output == NULL) {
     fprintf(stderr, "runGameOfLife: Output array has not been initialised\n");
@@ -517,14 +698,6 @@ char **loadFile() {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-// Gets a line of input from the user.
-//
-// Takes a (NULL) char double-pointer (str) and a (0-value or NULL) size_t
-// pointer (size). *str will become a pointer to a null-delimited string (NOT
-// including the new-line character at the end), and size's value will become
-// the length of the string in chars (not including the null char).
-//
-// *str must be manually freed outside of the function.
 int getInput(char **str, size_t *size) {
   bool discardSize = false;
   if (size == NULL) {
@@ -556,35 +729,70 @@ void clearBuffer() {
   while ((input = getchar()) != '\n' && input != EOF) {  }
 }
 
-int *returnBinary(uint8_t n)
-{
-
-  int *binary;
-  int count, j, pos;
-  count = pos = 0;
-
-  binary = malloc(sizeof(int) * 8);
-
+char *toBinary(unsigned char n) {
+  size_t length = sizeof(n) * 8; // length of n in bits
+  char *binary = malloc((sizeof(char) * length) + 1);
   if (binary == NULL) {
+    fprintf(stderr, "toBinary: Out of memory");
     return binary;
   }
 
-  for(count = 7; count >= 0; count--)
-  {
-    u_int8_t k = n >> count;
-
-    if(k & 1)
-    {
-      binary[pos] = 1;
-      pos++;
-    }
-    else
-    {
-      binary[pos] = 0;
-      pos++;
-    }
+  for (size_t i = length - 1; i >= 0; i--) {
+    binary[length - 1 - i] = ((n >> i) & 1) + 48;
   }
-
+  binary[sizeof(char) * length] = '\0'; // add the null-terminator
 
   return binary;
+}
+
+int getBool() {
+  char *input = NULL;
+  getInput(&input, NULL);
+  if (input == NULL) {
+    free(input);
+    return -1;
+  } else if (strlen(input) == 0) {
+    free(input);
+    return -2;
+  } else if (
+        !strcmp(input, "y") || !strcmp(input, "Y") || !strcmp(input, "yes") ||
+        !strcmp(input, "Yes") || !strcmp(input, "YES") || !strcmp(input, "t") ||
+        !strcmp(input, "T") || !strcmp(input, "true") || !strcmp(input, "True") ||
+        !strcmp(input, "TRUE")
+      ) {
+    free(input);
+    return true;
+  } else if (
+        !strcmp(input, "n") || !strcmp(input, "N") || !strcmp(input, "no") ||
+        !strcmp(input, "No") || !strcmp(input, "NO") || !strcmp(input, "f") ||
+        !strcmp(input, "F") || !strcmp(input, "false") || !strcmp(input, "False") ||
+        !strcmp(input, "FALSE")
+      ) {
+    free(input);
+    return false;
+  } else {
+    free(input);
+    return -3;
+  }
+}
+
+int boolToString(bool b, char *str) {
+  if (b) {
+    str = (char *)malloc(sizeof(char) * 5);
+    if (str == NULL) {
+      fprintf(stderr, "boolToString: Out of memory");
+      return 0;
+    }
+    strcpy(str, "true");
+    return 1;
+
+  } else {
+    str = (char *)malloc(sizeof(char) * 6);
+    if (str == NULL) {
+      fprintf(stderr, "boolToString: Out of memory");
+      return 0;
+    }
+    strcpy(str, "false");
+    return 1;
+  }
 }
