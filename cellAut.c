@@ -77,9 +77,9 @@ int main(int argc, char const *argv[]) {
 
 void menu() {
   while (true) { // loop until the function is returned from
-    printf("================================");
-    printf("    CELLULAR AUTOMATA - MENU    ");
-    printf("================================");
+    printf("================================\n");
+    printf("    CELLULAR AUTOMATA - MENU    \n");
+    printf("================================\n");
     printf(" [1] Run 1D automaton\n");
     printf(" [2] Run Game of Life\n");
     printf(" [3] Load Game of Life state\n");
@@ -104,13 +104,15 @@ void menu() {
           // TODO: setup initial row
           runAutomaton(true);
           // TODO: prompt to save
+          freeOutput();
           break;
 
         case 2:
           setupOptions(true);
           initOutput();
           // TODO: setup initial state
-          // TODO: enter game of life menu
+          gameOfLifeInterface();
+          freeOutput();
           break;
 
         case 3:
@@ -140,6 +142,9 @@ void menu() {
           }
           break;
 */
+        case 0:
+          return;
+
         default:
           printf("'%d' is not a valid choice. ", input);
           incorrectInput = true;
@@ -147,8 +152,6 @@ void menu() {
       }
     } while (incorrectInput);
   }
-
-  freeOutput();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -281,7 +284,7 @@ int setupOptions(bool gameOfLife) {
     }
   } while (looping);
   char *str = NULL;
-  boolToString(tXWrap, str);
+  boolToString(tXWrap, &str);
   printf("Set x-wrap to '%s'.\n", str);
   free(str);
 
@@ -307,7 +310,7 @@ int setupOptions(bool gameOfLife) {
       }
     } while (looping);
     char *str = NULL;
-    boolToString(tYWrap, str);
+    boolToString(tYWrap, &str);
     printf("Set y-wrap to '%s'.\n", str);
     free(str);
   }
@@ -371,8 +374,152 @@ int setupOptions(bool gameOfLife) {
   if (gameOfLife) { yWrap = tYWrap; }
   cTrue = tCTrue;
   cFalse = tCFalse;
-  printf("Setup complete!\n");
+  printf("Setup complete! ");
+  pressEnterToContinue();
   return 1;
+}
+
+void gameOfLifeInterface() {
+  long int generation = 0;
+  while (true) { // loop until the function is returned from
+    //printf("\033c");
+    printOutput();
+
+    printf("================================\n");
+    printf("GENERATION %ld\n", generation);
+    printf(" [1] Advance by one generation\n");
+    printf(" [2] Advance by a number of generations\n");
+    printf(" [3] Save current state to file\n");
+    printf(" [0] Exit Game of Life\n");
+
+    bool incorrectInput = false;
+    do {
+      printf("Please enter a number: ");
+      int input;
+      int status = scanf("%d", &input);
+      clearBuffer();
+      if (status <= 0) { // ie. they did not enter a number
+        continue;
+      }
+
+      switch (input) {
+        // [1] Advance by one generation
+        case 1:
+          runGameOfLife(1);
+          generation++;
+          break;
+
+        // [2] Advance by a number of generations
+        case 2:
+          ; // why is c like this
+          // get number of generations to advance by
+          long int gens;
+          bool genValid;
+          do {
+            genValid = false;
+            printf("Please enter the number of generations to advance by: ");
+
+            int n = scanf("%ld", &gens);
+            clearBuffer();
+            if (n == EOF) {
+              fprintf(stderr, "\ngameOfLifeInterface: EOF error when reading from stdin\n");
+              break;
+            } else if (n == 0) {
+              if (getchar() == '\n') {
+                break;
+              } else {
+                printf("That was not a valid number. ");
+              }
+            } else if (gens == 0) {
+              break;
+            } else if (gens < 0) {
+              printf("You cannot run the automaton backwards. ");
+            } else {
+              genValid = true;
+            }
+          } while (!genValid);
+          if (!genValid) { break; }
+
+          if (gens == 1) {
+            printf("Advancing by 1 generation. ");
+          } else {
+            printf("Advancing by %ld generations. ", gens);
+          }
+          pressEnterToContinue();
+
+          runGameOfLife(gens);
+          generation += gens;
+          break;
+
+        // [3] Save current state to file
+        case 3:
+          saveFile(); // TODO!
+          break;
+
+        // [0] Exit Game of Life
+        case 0:
+          ;
+          int shouldSave;
+          bool sInputValid;
+          do {
+            sInputValid = false;
+            printf("Do you want to save the current generation before exiting? [y/n]: ");
+
+            shouldSave = getBool();
+            if (shouldSave == -1) {
+              fprintf(stderr, "\ngameOfLifeInterface: Error when reading from stdin\n");
+              break;
+            } else if (shouldSave == -2) {
+              printf("Exit cancelled. ");
+              break;
+            } else if (shouldSave == -3) {
+              printf("Please type 'yes' or 'no'. ");
+            } else {
+              sInputValid = true;
+            }
+          } while (!sInputValid);
+          if (!sInputValid) {
+            pressEnterToContinue();
+            break;
+          }
+
+          if (shouldSave) {
+            saveFile(); // TODO!!
+          } else {
+            int exitConfirm;
+            bool eInputValid;
+            do {
+              eInputValid = false;
+              printf("Are you sure you want to discard the current automaton? [y/n]: ");
+
+              exitConfirm = getBool();
+              if (exitConfirm == -1) {
+                fprintf(stderr, "\ngameOfLifeInterface: Error when reading from stdin\n");
+                break;
+              } else if (exitConfirm == -3) {
+                printf("Please type 'yes' or 'no'. ");
+              } else if (exitConfirm == -2 || exitConfirm == false) {
+                printf("Exit cancelled. ");
+                break;
+              } else {
+                eInputValid = true;
+              }
+            } while (!eInputValid);
+            if (!eInputValid || !exitConfirm) { // if something went wrong or they chose 'n'
+              pressEnterToContinue();
+              break;
+            }
+            printf("Returning to main menu...\n");
+          }
+          return;
+
+        default:
+          printf("'%d' is not a valid choice. ", input);
+          incorrectInput = true;
+          break;
+      }
+    } while (incorrectInput);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -386,6 +533,10 @@ void initOutput() {
 }
 
 void freeOutput() {
+  if (output == NULL) {
+    return;
+  }
+
   for (size_t i = 0; i < rows; i++) {
     free(output[i]);
   }
@@ -476,7 +627,7 @@ int runAutomaton(bool printOutput) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int runGameOfLife(int generations) {
+int runGameOfLife(long int generations) {
   if (output == NULL) {
     fprintf(stderr, "runGameOfLife: Output array has not been initialised\n");
   }
@@ -484,7 +635,7 @@ int runGameOfLife(int generations) {
   // gen 0 is the first generation; gen is incremented at the end of each
   // generation, eg. the step from gen 0 to 1 will increment 'gen' from 0 to 1
   // at the *end* of the loop.
-  for (int gen = 0; gen < generations; gen++) {
+  for (long int gen = 0; gen < generations; gen++) {
     // move the previous generation to a separate variable and make a new 2D
     // array to store the new generation
     char **parent = output; // 2D char array for storing the previous state of the board
@@ -566,6 +717,9 @@ int runGameOfLife(int generations) {
         } else { // ie. 2 <= parentSum <= 3
           output[row][col] = 1;
         }
+
+        // for debug (TODO - remove this)
+        //printf("[%zu][%zu] parentSum = %hhd; output = %hhd\n", row, col, parentSum, output[row][col]);
       } // next col
     } // next row
 
@@ -707,18 +861,16 @@ int getInput(char **str, size_t *size) {
     size = (size_t *)malloc(sizeof(size_t));
     *size = 0;
     discardSize = true;
-    return 0;
   }
 
-  clearBuffer();
-
-  getline(str, size, stdin);
-  if (str == NULL) {
+  *size = getline(str, size, stdin);
+  if (str == NULL || *str == NULL) {
     fprintf(stderr, "getInput: Out of memory\n");
     return 0;
   }
 
   // remove the new-line char
+  (*size)--;
   (*str)[*size] = '\0';
   *str = (char *)realloc(*str, (sizeof(char) * (*size)) + 1);
 
@@ -736,7 +888,7 @@ char *toBinary(unsigned char n) {
   size_t length = sizeof(n) * 8; // length of n in bits
   char *binary = malloc((sizeof(char) * length) + 1);
   if (binary == NULL) {
-    fprintf(stderr, "toBinary: Out of memory");
+    fprintf(stderr, "toBinary: Out of memory\n");
     return binary;
   }
 
@@ -779,23 +931,33 @@ int getBool() {
   }
 }
 
-int boolToString(bool b, char *str) {
+int boolToString(bool b, char **str) {
+  if (str == NULL) {
+    fprintf(stderr, "boolToString: str cannot be null\n");
+    return 0;
+  }
+
   if (b) {
-    str = (char *)malloc(sizeof(char) * 5);
-    if (str == NULL) {
-      fprintf(stderr, "boolToString: Out of memory");
+    *str = (char *)malloc(sizeof(char) * 5);
+    if (*str == NULL) {
+      fprintf(stderr, "boolToString: Out of memory\n");
       return 0;
     }
-    strcpy(str, "true");
+    strcpy(*str, "true");
     return 1;
 
   } else {
-    str = (char *)malloc(sizeof(char) * 6);
-    if (str == NULL) {
-      fprintf(stderr, "boolToString: Out of memory");
+    *str = (char *)malloc(sizeof(char) * 6);
+    if (*str == NULL) {
+      fprintf(stderr, "boolToString: Out of memory\n");
       return 0;
     }
-    strcpy(str, "false");
+    strcpy(*str, "false");
     return 1;
   }
+}
+
+void pressEnterToContinue() {
+  printf("Press ENTER to continue... ");
+  getchar();
 }
