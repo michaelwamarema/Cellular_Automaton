@@ -96,4 +96,8 @@ int getBool();
 // str must be freed manually.
 int boolToString(bool b, char **str);
 
+int setupInitialRow();
+
+int setupInitialGameOfLife();
+
 void pressEnterToContinue();
