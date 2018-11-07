@@ -70,14 +70,14 @@ int main(int argc, char const *argv[]) {
   runGameOfLife(1);
   printOutput();
   freeOutput();*/
-
-  //menu();
-
-  setupInitialGameOfLife();
-  saveFile(true);
-  loadFile();
-  setupInitialGameOfLife();
+  //xWrap = yWrap = true;
+  //cTrue = '\\';
+  //setupInitialGameOfLife();
+  //saveFile(true);
+  //loadFile();
   //setupInitialRow();
+
+  menu();
   return 0;
 }
 
@@ -89,7 +89,7 @@ void menu() {
     printf(" [1] Run 1D automaton\n");
     printf(" [2] Run Game of Life\n");
     printf(" [3] Load Game of Life state\n");
-    //printf(" [4] Save the most recent automaton to a file:\n");
+    printf(" [4] Save the most recent automaton to a file:\n");
     //printf(" [5] Print out current automaton\n");
     printf(" [0] Exit program\n");
 
@@ -116,14 +116,17 @@ void menu() {
         case 2:
           setupOptions(true);
           initOutput();
-          // TODO: setup initial state
+          setupInitialGameOfLife();
           gameOfLifeInterface();
           freeOutput();
           break;
 
         case 3:
-          // TODO
+          loadFile();
           break;
+        case 4:
+          saveFile(false);
+        break;
 /*
         case 3:
           clearBuffer();
@@ -751,46 +754,45 @@ or will allow the user to have the board be randomly selected
 int setupInitialGameOfLife() {
 
   int n, x, inputRow = 0, inputColumn = 0;
+  bool clearBoard;
 
   if (output != NULL) {
 
     printf("Game of Life already loaded, would you like to overwrite? [y/n]\n");
-    if (getBool()) {
-      freeOutput();
+    clearBoard = getBool();
     }
+
+  if (clearBoard || output == NULL) {
+
+      //allocating memory
+      output = malloc(sizeof(char *) * rows);
+
+      if (output == NULL) {
+        return 0;
+      }
+
+      for (int i = 0; i < rows; i++) {
+        output[i] = malloc(sizeof(char) * columns);
+
+        if (output[i] == NULL) {
+          return 0;
+        }
+      }
+
+      //set defaults to be 0
+      for (int c = 0; c < rows; c++) {
+        for (size_t i = 0; i < columns; i++) {
+          output[c][i] = 0;
+        }
+      }
+
+      //set default to be in the middle, at the top of the game of life
+      output[0][(columns/2)] = 1;
   }
-
-
-  //allocating memory
-  output = malloc(sizeof(char *) * rows);
-
-  if (output == NULL) {
-    return 0;
-  }
-
-  for (int i = 0; i < rows; i++) {
-    output[i] = malloc(sizeof(char) * columns);
-
-    if (output[i] == NULL) {
-      return 0;
-    }
-  }
-
-  //set defaults to be 0
-  for (int c = 0; c < rows; c++) {
-    for (size_t i = 0; i < columns; i++) {
-      output[c][i] = 0;
-    }
-  }
-
-
-  //set default to be in the middle, at the top of the game of life
-  output[0][(columns/2)] = 1;
-
-
 
     //print the Game of life
-    printf("Please enter the number of the row then the column, to switch the bit, Enter -2 for a random board, or -1 to exit\n");
+    printf("Please enter the number of the row then the column, to switch the bit");
+    printf(", Enter -2 for a random board, -3 to load a Board or -1 to exit\\n");
 
     while (true) {
 
@@ -825,6 +827,10 @@ int setupInitialGameOfLife() {
               output[i][c] = rand() % 2;
           }
         }
+      } else if (inputRow == -3) {
+        loadFile();
+        printf("Game of life Initialised\n");
+        return 1;
       } else if (n == 0 || (inputRow > rows - 1) || inputRow < 0) {
 
         printf("Please enter a valid integer\n\n");
@@ -865,36 +871,41 @@ on a malloc fail. Will also malloc the array if it is currently NULL
 int setupInitialRow() {
 
   int n, input = 0;
+  bool clearBoard;
 
   if (output != NULL) {
 
     printf("Automaton already loaded, would you like to overwrite? [y/n]\n");
-    if (getBool()) {
+    clearBoard = getBool();
+    }
+
+    if (clearBoard || output == NULL) {
       freeOutput();
+
+
+        //allocating memory
+        output = malloc(sizeof(char) * rows);
+
+        if (output == NULL) {
+          return 0;
+        }
+
+        for (size_t i = 0; i < rows; i++) {
+          output[i] = malloc(sizeof(char) * columns);
+
+          if (output[i] == NULL) {
+            return 0;
+          }
+        }
+
+        //set defaults
+        for (size_t i = 0; i < columns; i++) {
+          output[0][i] = 0;
+        }
+        //default 'on' bit is the middle of the automaton
+        output[0][(columns/2)] = 1;
     }
-  }
 
-  //allocating memory
-  output = malloc(sizeof(char) * rows);
-
-  if (output == NULL) {
-    return 0;
-  }
-
-  for (size_t i = 0; i < rows; i++) {
-    output[i] = malloc(sizeof(char) * columns);
-
-    if (output[i] == NULL) {
-      return 0;
-    }
-  }
-
-  //set defaults
-  for (size_t i = 0; i < columns; i++) {
-    output[0][i] = 0;
-  }
-  //default 'on' bit is the middle of the automaton
-  output[0][(columns/2)] = 1;
 
   while (input != -1) {
 
@@ -956,12 +967,13 @@ FILE *attemptOpen(char* fileName, char* mode) {
 int saveFile(bool gameOfLife) {
 
   if (gameOfLife) {
-    printf("Would you like to save the settings of the Game of Life?\n");
+    printf("Would you like to save the settings of the Game of Life? [y/n]\n");
     if(!getBool()) {
       gameOfLife = false;
     }
   }
 
+  gameOfLife = false;
   if (output == NULL) {
     printf("saveFile: Cannot save NULL output\n");
     return 0;
@@ -981,7 +993,7 @@ int saveFile(bool gameOfLife) {
   }
 
   if (gameOfLife) {
-    fprintf(pFile, ".%d%d%d%d\n", xWrap, yWrap, cTrue, cFalse);
+    fprintf(pFile, ".%d%d%c%c", xWrap, yWrap, cTrue, cFalse);
   }
 
   //Loop writes the array to a file
@@ -1025,6 +1037,7 @@ char **loadFile() {
     if (data == '.') {
       //skip the gameOfLifeRules
       gameOfLifeRules = 10;
+      //skip the next four characters that pFile reads in
     }else if (gameOfLifeRules > 5) {
       gameOfLifeRules--;
     } else if (data != '\n') {
@@ -1059,6 +1072,7 @@ char **loadFile() {
   //rewind the file pointer to the first value
   rewind(pFile);
 
+  //cycle through the data, equating it to the game of life rules
   while ((data = fgetc(pFile)) != EOF) {
 
     if (gameOfLifeRules > 0) {
