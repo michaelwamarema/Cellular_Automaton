@@ -71,7 +71,10 @@ int main(int argc, char const *argv[]) {
   printOutput();
   freeOutput();*/
 
-  menu();
+  //menu();
+
+  setupInitialGameOfLife();
+  //setupInitialRow();
   return 0;
 }
 
@@ -101,7 +104,7 @@ void menu() {
         case 1:
           setupOptions(false);
           initOutput();
-          // TODO: setup initial row
+          setupInitialRow();
           runAutomaton(true);
           // TODO: prompt to save
           freeOutput();
@@ -734,6 +737,203 @@ int runGameOfLife(long int generations) {
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+
+/*
+Sets up the initial state for the game of life, returns 0 on a malloc fail and a
+1 on Success
+*/
+int setupInitialGameOfLife() {
+
+  int n, x, inputRow = 0, inputColumn = 0;
+
+  if (output != NULL) {
+
+    printf("Game of Life already loaded, would you like to overwrite? [y/n]\n");
+    if (getBool()) {
+      freeOutput();
+    }
+  }
+
+
+  //allocating memory
+  output = malloc(sizeof(char) * rows);
+
+  if (output == NULL) {
+    return 0;
+  }
+
+  for (int i = 0; i < rows; i++) {
+    output[i] = malloc(sizeof(char) * columns);
+
+    if (output[i] == NULL) {
+      return 0;
+    }
+  }
+
+  //set defaults to be 0
+  for (int c = 0; c < rows; c++) {
+    for (size_t i = 0; i < columns; i++) {
+      output[c][i] = 0;
+    }
+  }
+
+
+  //set default to be in the middle, at the top of the game of life
+  output[0][(columns/2)] = 1;
+
+  while (true) {
+
+    //print the Game of life
+    printf("Please enter the number of the row, then the column, to switch the bit, 2 for a random board, or -1 to exit\n\n ");
+
+    while (inputRow != -1) {
+
+      //print the numbers for the user
+      for (int i = 0; i < columns; i++) {
+        printf("%d", i);
+      }
+      //print the actual table
+      for (int c = 0; c < rows; c++) {
+        printf("\n%d", c);
+        for (size_t i = 0; i < columns; i++) {
+          printf("%d", output[c][i]);
+        }
+      }
+
+      printf("\n>");
+
+
+      n = scanf("%d", &inputRow);
+
+      if (n == EOF) {
+
+        printf("Error reading stdin\n\n");
+      } else if (inputRow != -1) {
+
+        break;
+      } else if (n == 0 || (inputRow > rows - 1) || inputRow < 0) {
+
+        printf("Please enter a valid integer\n\n");
+      } else if (inputRow == 2) {
+
+        for (size_t i = 0; i < rows; i++) {
+          for (size_t c = 0; c < columns; c++) {
+              output[i][c] = rand() % 2;
+          }
+        }
+      } else {
+
+        x = scanf("%d", &inputColumn);
+
+        if (n == EOF) {
+
+          printf("Error reading stdin\n\n");
+        } else if (inputRow != -1) {
+
+          break;
+        } else if (n == 0 || (inputColumn > columns - 1) || inputColumn < 0) {
+
+          printf("Please enter a valid integer\n\n");
+        } else {
+
+          if (output[inputRow][inputColumn] == 0) {
+            output[inputRow][inputColumn] = 1;
+          } else {
+            output[inputRow][inputColumn] = 0;
+          }
+        }
+      }
+    }
+  }
+
+  printf("Game of life Initialised\n");
+
+  return 1;
+}
+
+/*
+Initialises the first Row of the Automaton, returns 1 if successful, or -1
+on a malloc fail. Will also malloc the array if it is currently NULL
+*/
+int setupInitialRow() {
+
+  int n, input = 0;
+
+  if (output != NULL) {
+
+    printf("Automaton already loaded, would you like to overwrite? [y/n]\n");
+    if (getBool()) {
+      freeOutput();
+    }
+  }
+
+  //allocating memory
+  output = malloc(sizeof(char) * rows);
+
+  if (output == NULL) {
+    return 0;
+  }
+
+  for (size_t i = 0; i < rows; i++) {
+    output[i] = malloc(sizeof(char) * columns);
+
+    if (output[i] == NULL) {
+      return 0;
+    }
+  }
+
+  //set defaults
+  for (size_t i = 0; i < columns; i++) {
+    output[0][i] = 0;
+  }
+  //default 'on' bit is the middle of the automaton
+  output[0][(columns/2)] = 1;
+
+  while (input != -1) {
+
+    //print the first row of the automaton
+    printf("Please enter the number of the row to switch the bit, 2 for a random board, or -1 to exit\n\n");
+    while (input != -1) {
+      for (int i = 0; i < columns; i++) {
+        printf("%d", i);
+      }
+      printf("\n");
+      for (size_t i = 0; i < columns; i++) {
+        printf("%d", output[0][i]);
+      }
+      printf("\n>");
+
+
+      n = scanf("%d", &input);
+
+      if (n == EOF) {
+
+        printf("Error reading stdin\n\n");
+      } else if (n == 0 || (input > columns - 1) || input < 0 && input != -1) {
+
+        printf("Please enter a valid integer\n\n");
+      } else if (input == 2) {
+        for (size_t i = 0; i < columns; i++) {
+          output[0][i] = rand() % 2;
+        }
+      } else {
+
+        if (output[0][input] == 1) {
+
+          output[0][input] = 0;
+        } else {
+
+          output[0][input] = 1;
+        }
+      }
+    }
+  }
+
+  printf("First Row Initialised\n");
+
+  return 1;
+}
 
 FILE *attemptOpen(char* fileName, char* mode) {
 
