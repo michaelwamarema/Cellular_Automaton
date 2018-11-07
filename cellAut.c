@@ -74,6 +74,9 @@ int main(int argc, char const *argv[]) {
   //menu();
 
   setupInitialGameOfLife();
+  saveFile(true);
+  loadFile();
+  setupInitialGameOfLife();
   //setupInitialRow();
   return 0;
 }
@@ -173,6 +176,7 @@ int setupOptions(bool gameOfLife) {
   if (!gameOfLife) {
     do {
       looping = false;
+      clearBuffer();
       printf("Please enter the desired rule (0-255) [previous: %hhu]: ", rule);
 
       int n = scanf("%hhu", &tRule);
@@ -192,9 +196,9 @@ int setupOptions(bool gameOfLife) {
         }
       }
     } while (looping);
-    //char *ruleBin = toBinary(tRule); // TODO - this causes a segfault
-    //printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
-   //free(ruleBin);
+    char *ruleBin = toBinary(tRule);
+    printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
+    free(ruleBin);
   }
 
   // columns
@@ -455,7 +459,7 @@ void gameOfLifeInterface() {
 
         // [3] Save current state to file
         case 3:
-          saveFile(); // TODO!
+          saveFile(true); // TODO!
           break;
 
         // [0] Exit Game of Life
@@ -486,7 +490,7 @@ void gameOfLifeInterface() {
           }
 
           if (shouldSave) {
-            saveFile(); // TODO!!
+            saveFile(true); // TODO!!
           } else {
             int exitConfirm;
             bool eInputValid;
@@ -741,7 +745,8 @@ int runGameOfLife(long int generations) {
 
 /*
 Sets up the initial state for the game of life, returns 0 on a malloc fail and a
-1 on Success
+1 on Success. Function will allow the user to manually change each bit of the board
+or will allow the user to have the board be randomly selected
 */
 int setupInitialGameOfLife() {
 
@@ -757,7 +762,7 @@ int setupInitialGameOfLife() {
 
 
   //allocating memory
-  output = malloc(sizeof(char) * rows);
+  output = malloc(sizeof(char *) * rows);
 
   if (output == NULL) {
     return 0;
@@ -782,14 +787,15 @@ int setupInitialGameOfLife() {
   //set default to be in the middle, at the top of the game of life
   output[0][(columns/2)] = 1;
 
-  while (true) {
+
 
     //print the Game of life
-    printf("Please enter the number of the row, then the column, to switch the bit, 2 for a random board, or -1 to exit\n\n ");
+    printf("Please enter the number of the row then the column, to switch the bit, Enter -2 for a random board, or -1 to exit\n");
 
-    while (inputRow != -1) {
+    while (true) {
 
       //print the numbers for the user
+      printf("\n ");
       for (int i = 0; i < columns; i++) {
         printf("%d", i);
       }
@@ -809,19 +815,19 @@ int setupInitialGameOfLife() {
       if (n == EOF) {
 
         printf("Error reading stdin\n\n");
-      } else if (inputRow != -1) {
-
-        break;
-      } else if (n == 0 || (inputRow > rows - 1) || inputRow < 0) {
-
-        printf("Please enter a valid integer\n\n");
-      } else if (inputRow == 2) {
+      } else if (inputRow == -1) {
+        printf("Game of life Initialised\n");
+        return 1;
+      } else if (inputRow == -2) {
 
         for (size_t i = 0; i < rows; i++) {
           for (size_t c = 0; c < columns; c++) {
               output[i][c] = rand() % 2;
           }
         }
+      } else if (n == 0 || (inputRow > rows - 1) || inputRow < 0) {
+
+        printf("Please enter a valid integer\n\n");
       } else {
 
         x = scanf("%d", &inputColumn);
@@ -829,9 +835,10 @@ int setupInitialGameOfLife() {
         if (n == EOF) {
 
           printf("Error reading stdin\n\n");
-        } else if (inputRow != -1) {
+        } else if (inputRow == -1) {
 
-          break;
+          printf("Game of life Initialised\n");
+          return 1;
         } else if (n == 0 || (inputColumn > columns - 1) || inputColumn < 0) {
 
           printf("Please enter a valid integer\n\n");
@@ -845,7 +852,6 @@ int setupInitialGameOfLife() {
         }
       }
     }
-  }
 
   printf("Game of life Initialised\n");
 
@@ -892,40 +898,39 @@ int setupInitialRow() {
 
   while (input != -1) {
 
-    //print the first row of the automaton
-    printf("Please enter the number of the row to switch the bit, 2 for a random board, or -1 to exit\n\n");
-    while (input != -1) {
-      for (int i = 0; i < columns; i++) {
-        printf("%d", i);
-      }
-      printf("\n");
+  //print the first row of the automaton
+  printf("Please enter the number of the row to switch the bit, -2 for a random board, or -1 to exit\n\n");
+
+    for (int i = 0; i < columns; i++) {
+      printf("%d", i);
+    }
+    printf("\n");
+    for (size_t i = 0; i < columns; i++) {
+      printf("%d", output[0][i]);
+    }
+    printf("\n>");
+
+
+    n = scanf("%d", &input);
+
+    if (n == EOF) {
+
+      printf("Error reading stdin\n\n");
+    } else if (n == 0 || (input > columns - 1) || input < 0 && input != -1) {
+
+      printf("Please enter a valid integer\n\n");
+    } else if (input == -2) {
       for (size_t i = 0; i < columns; i++) {
-        printf("%d", output[0][i]);
+        output[0][i] = rand() % 2;
       }
-      printf("\n>");
+    } else {
 
+      if (output[0][input] == 1) {
 
-      n = scanf("%d", &input);
-
-      if (n == EOF) {
-
-        printf("Error reading stdin\n\n");
-      } else if (n == 0 || (input > columns - 1) || input < 0 && input != -1) {
-
-        printf("Please enter a valid integer\n\n");
-      } else if (input == 2) {
-        for (size_t i = 0; i < columns; i++) {
-          output[0][i] = rand() % 2;
-        }
+        output[0][input] = 0;
       } else {
 
-        if (output[0][input] == 1) {
-
-          output[0][input] = 0;
-        } else {
-
-          output[0][input] = 1;
-        }
+        output[0][input] = 1;
       }
     }
   }
@@ -948,7 +953,14 @@ FILE *attemptOpen(char* fileName, char* mode) {
   return pFile;
 }
 
-int saveFile() {
+int saveFile(bool gameOfLife) {
+
+  if (gameOfLife) {
+    printf("Would you like to save the settings of the Game of Life?\n");
+    if(!getBool()) {
+      gameOfLife = false;
+    }
+  }
 
   if (output == NULL) {
     printf("saveFile: Cannot save NULL output\n");
@@ -968,6 +980,10 @@ int saveFile() {
     return 0;
   }
 
+  if (gameOfLife) {
+    fprintf(pFile, ".%d%d%d%d\n", xWrap, yWrap, cTrue, cFalse);
+  }
+
   //Loop writes the array to a file
   for (size_t i = 0; i < rows ; i++) {
     for (size_t c = 0; c < columns ; c++) {
@@ -984,6 +1000,8 @@ int saveFile() {
 }
 
 char **loadFile() {
+
+  int gameOfLifeRules = 0;
 
   printf("Please enter the filename to load from: ");
   char *fileName = NULL;
@@ -1004,7 +1022,12 @@ char **loadFile() {
   //Determine how big the Array is going to be for memory allocation purposes
   while ((data = fgetc(pFile)) != EOF) {
 
-    if (data != '\n') {
+    if (data == '.') {
+      //skip the gameOfLifeRules
+      gameOfLifeRules = 10;
+    }else if (gameOfLifeRules > 5) {
+      gameOfLifeRules--;
+    } else if (data != '\n') {
       i++;
     } else {
       c++;
@@ -1038,12 +1061,39 @@ char **loadFile() {
 
   while ((data = fgetc(pFile)) != EOF) {
 
-    if (data == '\n') {
-      i++;
-      c = 0;
+    if (gameOfLifeRules > 0) {
+
+      switch (gameOfLifeRules) {
+        case 5:
+          gameOfLifeRules--;
+          break;
+        case 4:
+          xWrap = data;
+          gameOfLifeRules--;
+          break;
+        case 3:
+          yWrap = data;
+          gameOfLifeRules--;
+          break;
+        case 2:
+          cTrue = data;
+          gameOfLifeRules--;
+          break;
+        case 1:
+        cFalse = data;
+        gameOfLifeRules--;
+        break;
+      }
+      //xwrapy, ywrap, ctrue, cfalse
     } else {
-      //set the array to the data in the file
-      boardToLoad[i][c++] = data;
+
+      if (data == '\n') {
+        i++;
+        c = 0;
+      } else {
+        //set the array to the data in the file
+        boardToLoad[i][c++] = data;
+      }
     }
   }
 

@@ -51,7 +51,7 @@ FILE *attemptOpen(char* fileName, char* mode);
   The following function saves the output array to a file and then returns 0 if
   a error was encountered or 1 if it was successful.
 */
-int saveFile();
+int saveFile(bool gameOfLife);
 
 /*
   The following function loads a file using attemptOpen(), then prompts the user
