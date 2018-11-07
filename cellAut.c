@@ -382,7 +382,7 @@ int setupOptions(bool gameOfLife) {
 void gameOfLifeInterface() {
   long int generation = 0;
   while (true) { // loop until the function is returned from
-    //printf("\033c");
+    printf("\033c");
     printOutput();
 
     printf("================================\n");
@@ -959,5 +959,5 @@ int boolToString(bool b, char **str) {
 
 void pressEnterToContinue() {
   printf("Press ENTER to continue... ");
-  getchar();
+  clearBuffer();
 }
