@@ -170,7 +170,6 @@ int setupOptions(bool gameOfLife) {
   if (!gameOfLife) {
     do {
       looping = false;
-      clearBuffer();
       printf("Please enter the desired rule (0-255) [previous: %hhu]: ", rule);
 
       int n = scanf("%hhu", &tRule);
@@ -190,9 +189,9 @@ int setupOptions(bool gameOfLife) {
         }
       }
     } while (looping);
-    char *ruleBin = toBinary(tRule);
-    printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
-    free(ruleBin);
+    //char *ruleBin = toBinary(tRule); // TODO - this causes a segfault
+    //printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
+   //free(ruleBin);
   }
 
   // columns
