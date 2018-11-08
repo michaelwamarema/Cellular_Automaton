@@ -208,6 +208,9 @@ int setupOptions(bool gameOfLife) {
     } else if (tCols == 0) {
       printf("You must have at least one column. ");
       looping = true;
+    } else if (tCols > 64) {
+      printf("Sorry, you cannot have more than 64 columns. ");
+      looping = true;
     }
   } while (looping);
   printf("Set column number to %zu.\n", tCols);
@@ -239,6 +242,9 @@ int setupOptions(bool gameOfLife) {
 
     } else if (tRows == 0) {
       printf("You must have at least one row. ");
+      looping = true;
+    } else if (tRows > 64) {
+      printf("Sorry, you cannot have more than 64 rows. ");
       looping = true;
     }
   } while (looping);
@@ -832,7 +838,7 @@ int setupInitialRow() {
 
 
         //allocating memory
-        output = malloc(sizeof(char) * rows);
+        output = malloc(sizeof(char*) * rows);
 
         if (output == NULL) {
           return 0;
