@@ -168,6 +168,7 @@ int runGameOfLife(long int generations) {
       free(parent[i]);
     }
     free(parent);
+    parent = NULL;
 
   } // next gen
   return 1;

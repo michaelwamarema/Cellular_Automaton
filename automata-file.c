@@ -78,6 +78,7 @@ int saveToFile(bool gameOfLife) {
   fclose(pFile);
   printf("Successfully saved output to '%s'! ", fileName);
   free(fileName);
+  fileName = NULL;
   pressEnterToContinue();
 
   return 1;
@@ -99,7 +100,6 @@ int loadFile() {
 
   //open the file in read mode
   FILE *pFile = attemptOpen(fileName, "r");
-  free(fileName);
 
   if (pFile == NULL) {
     fprintf(stderr, "The file '%s' could not be found.\n", fileName);
@@ -107,6 +107,7 @@ int loadFile() {
     return 0;
   }
   free(fileName);
+  fileName = NULL;
 
   size_t i, c;
   char data;
@@ -150,7 +151,6 @@ int loadFile() {
       return 0;
     }
     if (row > 0 && boardToLoad[row] == boardToLoad[row - 1]) {
-      // i'm... not sure what's happening here
       fprintf(stderr, "loadFile: Memory corruption error; same pointer returned by malloc multiple times\n");
       return 0;
     }

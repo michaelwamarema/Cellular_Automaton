@@ -149,6 +149,7 @@ int setupOptions(bool gameOfLife) {
     char *ruleBin = toBinary(tRule);
     printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
     free(ruleBin);
+    ruleBin = NULL;
   }
 
   // columns
@@ -249,6 +250,7 @@ int setupOptions(bool gameOfLife) {
   boolToString(tXWrap, &str);
   printf("Set x-wrap to '%s'.\n", str);
   free(str);
+  str = NULL;
 
   // yWrap
   if (gameOfLife) {
@@ -275,6 +277,7 @@ int setupOptions(bool gameOfLife) {
     boolToString(tYWrap, &str);
     printf("Set y-wrap to '%s'.\n", str);
     free(str);
+    str = NULL;
   }
 
   // cTrue
