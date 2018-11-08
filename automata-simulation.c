@@ -154,8 +154,10 @@ int runGameOfLife(long int generations) {
         // (alive).
         if ((parentSum <= 1 && parentSum >= 0) || (parentSum >= 4 && parentSum <= 8)) {
           output[row][col] = 0;
-        } else if (parentSum >= 2 || parentSum <= 3) { // ie. 2 <= parentSum <= 3
+        } else if (parentSum == 3) {
           output[row][col] = 1;
+        } else if (parentSum == 2) {
+          output[row][col] = parent[row][col];
         } else {
           fprintf(stderr, "runGameOfLife: Sum of parents was %hhd for cell [%zu][%zu] on gen %ld\n", parentSum, row, col, gen);
         }

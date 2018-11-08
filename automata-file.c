@@ -166,10 +166,10 @@ int loadFile() {
     if (gameOfLifeRules >= 0) {
       switch (gameOfLifeRules) {
         case 4:
-          xWrap = data;
+          xWrap = (data == '1');
           break;
         case 3:
-          yWrap = data;
+          yWrap = (data == '1');
           break;
         case 2:
           cTrue = data;

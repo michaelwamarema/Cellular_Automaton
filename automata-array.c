@@ -73,7 +73,7 @@ int printLine(size_t line) {
     fprintf(stderr, "printLine: Output array has not been initialised\n");
     return 0;
   }
-  if (line < 0 || line > rows - 1) {
+  if (line > rows - 1) {
     fprintf(stderr, "printLine: %zu is out of bounds\n", line);
     return 0;
   }
