@@ -5,7 +5,7 @@
 
 // Initialises the output array.
 // The data in the array will be undefined.
-void initOutput();
+int initOutput();
 
 // Clears the contents of the output array.
 void clearOutput();

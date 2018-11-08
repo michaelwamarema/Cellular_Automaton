@@ -79,7 +79,7 @@ int runGameOfLife(long int generations) {
     // array to store the new generation
     char **parent = output; // 2D char array for storing the previous state of the board
     output = NULL; // if this is not done, initOutput() will just try to recycle the current array
-    initOutput(); // convert the "output" pointer to a new 2D array
+    if (!initOutput()) { return 0; } // convert the "output" pointer to a new 2D array
 
     for (size_t row = 0; row < rows; row++) { // for every row
       for (size_t col = 0; col < columns; col++) { // for every cell of that row

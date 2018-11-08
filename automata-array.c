@@ -16,14 +16,30 @@
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void initOutput() {
+int initOutput() {
   if (output != NULL) {
-    return; // no need to reallocate memory
+    return 1; // no need to reallocate memory
   }
+
   output = (char**)malloc(sizeof(char*) * rows);
+  if (output == NULL) {
+    fprintf(stderr, "initOutput: Out of memory error when trying to allocate rows\n");
+    return 0;
+  }
+
   for (size_t i = 0; i < rows; i++) {
     output[i] = (char*)malloc(sizeof(char) * columns);
+    if (output[i] == NULL) {
+      fprintf(stderr, "initOutput: Out of memory error when trying to allocate cells\n");
+      return 0;
+    }
+    if (i > 0 && output[i] == output[i - 1]) {
+      fprintf(stderr, "initOutput: Memory corruption error; same pointer returned by malloc multiple times\n");
+      return 0;
+    }
   }
+
+  return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

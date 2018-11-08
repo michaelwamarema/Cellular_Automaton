@@ -46,7 +46,7 @@ void menu() {
         // [1] Run 1D automaton
         case 1:
           if (!setupOptions(false)) { break; }
-          initOutput();
+          if (!initOutput()) { break; }
           setupInitialRow();
 
           printf("================================\n");
@@ -83,7 +83,7 @@ void menu() {
         // [2] Run Game of Life
         case 2:
           if (!setupOptions(true)) { break; }
-          initOutput();
+          if (!initOutput()) { break; }
           setupInitialGameOfLife();
           gameOfLifeInterface();
           freeOutput();
