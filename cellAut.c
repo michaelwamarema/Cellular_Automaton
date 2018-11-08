@@ -175,9 +175,9 @@ int setupOptions(bool gameOfLife) {
         }
       }
     } while (looping);
-    //char *ruleBin = toBinary(tRule);
-    //printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
-    //free(ruleBin);
+    char *ruleBin = toBinary(tRule);
+    printf("Set rule to %hhu (%s).\n", tRule, ruleBin);
+    free(ruleBin);
   }
 
   // columns
@@ -517,9 +517,9 @@ void gameOfLifeInterface() {
 ////////////////////////////////////////////////////////////////////////////////
 
 void initOutput() {
-  output = malloc(sizeof(char*) * rows);
+  output = (char**)malloc(sizeof(char*) * rows);
   for (size_t i = 0; i < rows; i++) {
-    output[i] = malloc(sizeof(char) * columns);
+    output[i] = (char*)malloc(sizeof(char) * columns);
   }
 }
 
@@ -1093,16 +1093,16 @@ void clearBuffer() {
 
 char *toBinary(unsigned char n) {
   size_t length = sizeof(n) * 8; // length of n in bits
-  char *binary = malloc((sizeof(char) * length) + 1);
+  char *binary = (char*)malloc((sizeof(char) * length) + 1); // array of size (length + 1)
   if (binary == NULL) {
     fprintf(stderr, "toBinary: Out of memory\n");
-    return binary;
+    return NULL;
   }
 
-  for (size_t i = length - 1; i >= 0; i--) {
+  for (int i = length - 1; i >= 0; i--) { // from 7..0
     binary[length - 1 - i] = ((n >> i) & 1) + 48;
   }
-  binary[sizeof(char) * length] = '\0'; // add the null-terminator
+  binary[length] = '\0'; // add the null-terminator
 
   return binary;
 }
