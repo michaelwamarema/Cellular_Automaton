@@ -1,5 +1,7 @@
 #include <stdbool.h>
 
+/* MENU FUNCTIONS */
+
 // Displays the menu to the user, automatically looping until the user chooses
 // to exit.
 void menu();
@@ -10,15 +12,33 @@ void menu();
 // the output array.
 int setupOptions(bool gameOfLife);
 
+/*
+  Initialises the first Row of the Automaton, based on user input.
+*/
+void setupInitialRow();
+
+/*
+  Sets up the initial state for the game of life. Function will allow the user
+  to manually change each bit of the board or will allow the user to have the
+  board be randomly selected.
+*/
+void setupInitialGameOfLife();
+
 // Prints the current generation and presents the user with the options to
 // advance by a certain number of generations, save the current state to a file,
 // or quit to the main menu. This function requires that the ouput array is
 // already initialised, and the initial state is already set.
 void gameOfLifeInterface();
 
+
+/* OUTPUT ARRAY FUNCTIONS */
+
 // Initialises the output array.
-// Makes no guarantee of the initial line being empty.
+// The data in the array will be undefined.
 void initOutput();
+
+// Clears the contents of the output array.
+void clearOutput();
 
 // Frees the output array and sets output to NULL.
 void freeOutput();
@@ -28,6 +48,9 @@ int printLine(size_t line);
 
 // Prints the entire output array
 int printOutput();
+
+
+/* AUTOMATON SIMULATION METHODS */
 
 // Runs the automaton with the current settings, populating the rest of the
 // output array (the first line must already be populated).
@@ -40,6 +63,9 @@ int runAutomaton(bool printOutput);
 // generation in turn.
 int runGameOfLife(long int generations);
 
+
+/* SAVE/LOAD FUNCTIONS */
+
 /*
   This function attempts to open the given file in read or write mode.
   The function takes in the file name and the mode and will return either
@@ -51,19 +77,22 @@ FILE *attemptOpen(char* fileName, char* mode);
   The following function saves the output array to a file and then returns 0 if
   a error was encountered or 1 if it was successful.
 */
-int saveFile(bool gameOfLife);
+int saveToFile(bool gameOfLife);
 
 /*
   The following function loads a file using attemptOpen(), then prompts the user
-  for a filename to open, and returns a 2D pointer array to what was found
-  within the file, or will return NULL if an error was encountered.
+  for a filename to open, and sets 'output' to the loaded array, or returns 0 if
+  an error occurred.
 
   The function also changes the values of the global rows and columns variables
   to match the new array.
 
-  The returned array must be freed manually (after each of its rows is freed).
+  The output array must be freed using freeOutput().
 */
-char **loadFile();
+int loadFile();
+
+
+/* UTILITY FUNCTIONS */
 
 // Gets a line of input from the user.
 //
@@ -80,8 +109,8 @@ int getInput(char **str, size_t *size);
 // This should be called after every scanf call.
 void clearBuffer();
 
-// Converts the unsigned char 'n' to a null-terminated string made up of the
-// characters '0' and '1', corresponding to the binary representation of 'n'.
+// Converts the unsigned char 'rule' to a null-terminated string made up of the
+// characters '0' and '1', corresponding to the binary representation of 'rule'.
 // The returned pointer must be manually freed.
 char *toBinary(unsigned char rule);
 
@@ -92,12 +121,10 @@ char *toBinary(unsigned char rule);
 //  -3: unrecognised string
 int getBool();
 
-// Sets str to either "true" or "false", depending on the value of 'b'.
-// str must be freed manually.
+// Sets *str to either "true" or "false", depending on the value of 'b'.
+// *str must be freed manually.
 int boolToString(bool b, char **str);
 
-int setupInitialRow();
-
-int setupInitialGameOfLife();
-
+// Prints the string "Press ENTER to continue..." then waits for the user to
+// return.
 void pressEnterToContinue();
